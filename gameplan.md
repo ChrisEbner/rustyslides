@@ -38,3 +38,11 @@ custodian of the stolen plans that can save
 her people and restore freedom to the galaxy...
 
 ```
+
+### Todo: Add Example output
+
+## Planned Features:
+
+- Integration with Chat-Tool(s)
+    - Mattermost // Slack
+- Managing Slidedecks per User
