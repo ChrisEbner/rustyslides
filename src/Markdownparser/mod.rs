@@ -139,39 +139,95 @@ impl Parser {
     /// this function takes an input string and parses it to blocks and store it in the AST
     pub fn parse_to_blocks(mut self, input_string: &str) -> Vec<ASTBlock> {
         let workable_string = input_string;
-
         // give me all newline occurruences in workable string
         let newline_positions = workable_string.clone().match_indices(NEWLINE);
         let newline_position_count = newline_positions.clone().count();
         let mut oldpos = 0;
         
-        for (i,pos) in newline_positions.enumerate() {
+        for (index,pos) in newline_positions.enumerate() {
 
             let newpos = pos.0 + 1;
             
-            self.ast.push(self.construct_block(&workable_string[oldpos..newpos]));
-            
-            if newline_position_count-1 == i {
-                self.ast.push(self.construct_block(&workable_string[newpos..workable_string.len()]));
+            // There is an edge case if we encounter a newline at the end of the string, 
+            // the newpos will be eq or gt the length of the original input.
+            // In this case we have to push the remainder of the string and continue.
+            if newpos >= workable_string.len() {
+                let constructed_block = self.construct_block(&workable_string[oldpos..newpos]);
+
+                match constructed_block {
+                    Ok(block) => {
+                        self.ast.push(block);
+                    },
+                    Err(e) => println!("Error in Block construction: {:?}", e)
+                }
+
+                continue;
             }
 
-            oldpos += newpos;
+            let constructed_block = self.construct_block(&workable_string[oldpos..newpos]);
+
+            match constructed_block {
+                Ok(block) => {
+                    self.ast.push(block);
+                
+                    if newline_position_count-1 == index {
+                        let last_constructed_block = self.construct_block(&workable_string[newpos..workable_string.len()]);
+
+                        match last_constructed_block {
+                            Ok(block) => self.ast.push(block),
+                            Err(e) => println!("Error in constructing the last block: {:?}", e)
+                        }
+                    }
+
+                    oldpos = newpos;
+                },
+                Err(e) => println!("Error in Block construction: {:?}", e)
+            }
         }
         
         self.ast
     }
 
-    fn construct_block(&self, _string: &str) -> ASTBlock {
-        // check chars for whitespace and block demarcation chars
-        println!("Input string {:?}", _string);
-        
+    fn construct_block(&self, _string: &str) -> Result<ASTBlock, &'static str> {
+        // we need to check what kind of block this wants to be.
+        // does it start with a special character that will denote it as such?
+        let mut string_chars = _string[0.._string.len()].chars();
 
-
-        ASTBlock {
-            ///return the ASTBlock
-            block_type: ASTBlockType::Paragraph {
-                data: _string.to_string()
-            }
+        match string_chars.next()  {
+            Some(char) => {
+               if char == NEWLINE {
+                   return Err("Empty Block encountered");
+               }
+                
+               if char == '\u{0023}' {
+                //check for additional following # for higher level Headlines
+                let mut count_hash = 1;
+                
+                while let Some(_char) = string_chars.next() {
+                    if _char != '\u{0023}' {
+                        break;
+                    }
+                    count_hash+=1;
+                }
+                
+                return Ok(ASTBlock {
+                    ///return the standard paragraph AST Block
+                    block_type: ASTBlockType::Headline {
+                        headline_type: count_hash,
+                        data: _string.to_string()
+                    }
+                })
+               }  
+                // Otherwise we return a normal paragraph block.
+                Ok(ASTBlock {
+                    ///return the standard paragraph AST Block
+                    block_type: ASTBlockType::Paragraph {
+                        data: _string.to_string()
+                    }
+                })
+         
+            },
+            None => Err("Error")
         }
     }
 }
