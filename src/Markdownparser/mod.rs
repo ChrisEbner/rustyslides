@@ -139,66 +139,39 @@ impl Parser {
     /// this function takes an input string and parses it to blocks and store it in the AST
     pub fn parse_to_blocks(mut self, input_string: &str) -> Vec<ASTBlock> {
         let workable_string = input_string;
-        let char_vec: Vec<char> = Vec::new();
-        let mut last_newposition = 0;
-        let mut done: bool = false;
 
-        while !done {
-            println!("{:?}", last_newposition);
-            // Break into block
-            // take the string, find Lineendingchar, take string, transform into block, push block onto ast
-            let mut _workable = workable_string.clone();
-            let newline_position = find_newline(_workable[last_newposition.._workable.len()].chars());
-            let mut char_vec_clone = char_vec.clone();
+        // give me all newline occurruences in workable string
+        let newline_positions = workable_string.clone().match_indices(NEWLINE);
+        let newline_position_count = newline_positions.clone().count();
+        let mut oldpos = 0;
+        
+        for (i,pos) in newline_positions.enumerate() {
+
+            let newpos = pos.0 + 1;
             
-            match newline_position {
-                Some(pos) => {
-                  
-                    for c in _workable.chars().take(pos) {
-                        char_vec_clone.push(c)
-                    }
-
-                    // make it into block
-                    self.ast.push(self.construct_block_from_char_vec(char_vec_clone));
-                    // take rest
-                    // move into workable string
-                    last_newposition += pos;
-                },
-                None => {
-                    // take everything from workablestring,
-                    for c in _workable.clone().chars() {
-                        char_vec_clone.push(c)
-                    }
-                    // make it into block,
-                    self.ast.push(self.construct_block_from_char_vec(char_vec_clone));
-
-                    //then set done to true.
-                    done = true;
-                }
+            self.ast.push(self.construct_block(&workable_string[oldpos..newpos]));
+            
+            if newline_position_count-1 == i {
+                self.ast.push(self.construct_block(&workable_string[newpos..workable_string.len()]));
             }
+
+            oldpos += newpos;
         }
         
         self.ast
     }
 
-    fn construct_block_from_char_vec(&self, _string: Vec<char>) -> ASTBlock {
+    fn construct_block(&self, _string: &str) -> ASTBlock {
         // check chars for whitespace and block demarcation chars
-        for xc in _string
-        {
-            println!("Input string {:?}", xc);
-        }
+        println!("Input string {:?}", _string);
         
+
+
         ASTBlock {
             ///return the ASTBlock
             block_type: ASTBlockType::Paragraph {
-                data: "WHAT".to_string()
+                data: _string.to_string()
             }
         }
     }
-}
-
-fn find_newline(mut chariter: std::str::Chars<'_>) -> Option<usize> {
-    return chariter.position(|c| {
-        c == NEWLINE
-    });
 }

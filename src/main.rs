@@ -25,7 +25,11 @@ fn main() {
 
     let parser: Markdownparser::Parser = Markdownparser::Parser::new();
 
-    parser.parse_to_blocks(input_string);
+    let ast = parser.parse_to_blocks(input_string);
+
+    for block in ast {
+        println!("{:?}", block);
+    }
 }
 
 #[cfg(test)]
